@@ -1,0 +1,67 @@
+import random
+
+def count_conflicts(board, n):
+    """Count the number of conflicts (attacking queens)."""
+    conflicts = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            # Check if queens are in the same column, same diagonal
+            if board[i] == board[j] or abs(board[i] - board[j]) == j - i:
+                conflicts += 1
+    return conflicts
+
+def hill_climbing(n):
+    # Randomly initialize the board with one queen per column
+    board = [random.randint(0, n - 1) for _ in range(n)]
+    current_conflicts = count_conflicts(board, n)
+    
+    # Keep track of the best solution found
+    while True:
+        # Try all possible moves (moving each queen to a different row in its column)
+        next_board = None
+        next_conflicts = current_conflicts
+        
+        for col in range(n):
+            # Try moving the queen in the current column to all possible rows
+            for row in range(n):
+                if row != board[col]:
+                    # Make a copy of the current board and move the queen
+                    new_board = board[:]
+                    new_board[col] = row
+                    new_conflicts = count_conflicts(new_board, n)
+                    
+                    # If this move reduces conflicts, choose this move
+                    if new_conflicts < next_conflicts:
+                        next_board = new_board
+                        next_conflicts = new_conflicts
+        
+        # If no better solution is found, stop
+        if next_board is None:
+            break
+        
+        # Move to the new board with fewer conflicts
+        board = next_board
+        current_conflicts = next_conflicts
+        
+        # If no conflicts, we have found the solution
+        if current_conflicts == 0:
+            return board
+
+    return None
+
+def print_board(board, n):
+    """Print the board in a readable format."""
+    for row in range(n):
+        line = ['Q' if col == board[row] else '.' for col in range(n)]
+        print(" ".join(line))
+    print()
+
+# Test with N = 4 (you can change the value of N)
+n = 4
+solution = hill_climbing(n)
+
+if solution:
+    print(f"Solution for {n}-Queens using Hill Climbing:")
+    print_board(solution, n)
+else:
+    print("No solution found.")
