@@ -1,48 +1,79 @@
-from typing import Callable, Any, List
+# REAL Resolution Algorithm for Week-9 Problem
+# Knowledge Base: John likes all food; Anil eats peanut and is alive.
 
-# Define logical connectives
-def AND(p: bool, q: bool) -> bool:
-    return p and q
+def negate_literal(lit):
+    return lit[1:] if lit.startswith("~") else "~" + lit
 
-def OR(p: bool, q: bool) -> bool:
-    return p or q
+def resolve(ci, cj):
+    ci = set(ci)
+    cj = set(cj)
+    resolvents = []
 
-def NOT(p: bool) -> bool:
-    return not p
-
-def IMPLIES(p: bool, q: bool) -> bool:
-    return (not p) or q
-
-
-# Quantifiers
-def FORALL(domain: List[Any], predicate: Callable[[Any], bool]) -> bool:
-    """Universal quantifier: True if predicate(x) holds for all x in domain"""
-    return all(predicate(x) for x in domain)
-
-def EXISTS(domain: List[Any], predicate: Callable[[Any], bool]) -> bool:
-    """Existential quantifier: True if predicate(x) holds for some x in domain"""
-    return any(predicate(x) for x in domain)
+    for di in ci:
+        ndi = negate_literal(di)
+        if ndi in cj:
+            new_clause = (ci - {di}) | (cj - {ndi})
+            if len(new_clause) == 0:
+                resolvents.append({"res": set(), "pair": (ci, cj)})
+            else:
+                resolvents.append({"res": new_clause, "pair": (ci, cj)})
+    return resolvents
 
 
-# Example predicates
-def is_even(x: int) -> bool:
-    return x % 2 == 0
+# CLAUSES (CNF)
+clauses = [
+    {"~Food(x)", "Likes(John,x)"},
+    {"~Eats(x,y)", "~Killed(y)", "Food(y)"},
+    {"Eats(Anil,Peanut)"},
+    {"Alive(Anil)"},
+    {"~Alive(z)", "~Killed(z)"},
+    {"~Likes(John,Peanut)"}   # Negated Query
+]
 
-def is_positive(x: int) -> bool:
-    return x > 0
+# Resolution Steps Storage
+steps = []
 
+changed = True
+while changed:
+    changed = False
+    new = []
 
-# Example FOL statements
-if __name__ == "__main__":
-    domain = list(range(-3, 6))  # domain = {-3, -2, -1, 0, 1, 2, 3, 4, 5}
+    for i in range(len(clauses)):
+        for j in range(i+1, len(clauses)):
+            ci = clauses[i]
+            cj = clauses[j]
+            resolvents = resolve(ci, cj)
 
-    # ∀x (is_even(x) → is_positive(x))
-    statement1 = FORALL(domain, lambda x: IMPLIES(is_even(x), is_positive(x)))
+            for r in resolvents:
+                res = r["res"]
+                if res == set(): # NIL Found
+                    steps.append((ci, cj, set()))
+                    print("\n✅ NIL (Contradiction Found)")
+                    print("=> Query Proven TRUE")
+                    changed = False
+                    break
 
-    # ∃x (is_even(x) ∧ ¬is_positive(x))
-    statement2 = EXISTS(domain, lambda x: AND(is_even(x), NOT(is_positive(x))))
+                if res not in clauses and res not in new:
+                    new.append(res)
+                    steps.append((ci, cj, res))
+                    changed = True
+        if changed is False and resolvents and res == set():
+            break
 
-    print("Domain:", domain)
-    print("Statement 1: ∀x (is_even(x) → is_positive(x)) =", statement1)
-    print("Statement 2: ∃x (is_even(x) ∧ ¬is_positive(x)) =", statement2)
-    print("code by Srujan K R")
+    for c in new:
+        clauses.append(c)
+
+# PRINT RESOLUTION STEPS
+print("\n==============================")
+print("      RESOLUTION STEPS")
+print("==============================")
+for (a, b, c) in steps:
+    if c == set():
+        print(f"{a}  +  {b}  =>  NIL")
+    else:
+        print(f"{a}  +  {b}  =>  {c}")
+
+# PRINT CLAUSES AFTER DERIVATION
+print("\nRemaining Clauses:")
+for c in clauses:
+    print(c)
